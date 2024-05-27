@@ -198,17 +198,16 @@ class vectors2raster:
             self.first_start = False
             self.dlg = vectors2rasterDialog()
 
-        #로드된 레이어 불러오기
+        #get current layers
         mc = QgsProject.instance().mapLayers().values()
         map_layers_str = []
-        #불러온 레이어중 벡터 레이어만 리스트에 추가
+        #filtering vector layers
         for lyr in mc:
-            print(type(lyr))
             if lyr.type() == QgsMapLayer.VectorLayer:
                 map_layers_str.append(str(lyr.name()))
         self.dlg.mComboBox.addItems(map_layers_str)
 
-        #run, cancel 버튼 이벤트 추가
+        #run, cancel button event
         self.dlg.runButton.clicked.connect(self.setValues)
         self.dlg.closeButton.clicked.connect(self.closeDlg)
 
@@ -218,7 +217,6 @@ class vectors2raster:
         result = self.dlg.exec_()
 
 
-        #result 쪽 내용은  runButton-> setValues로 다 빠졌는데 비우면 에러가 나서 일단 코드는 남겨놓음
         # See if OK was pressed
         if result:
             # Do something useful here - delete the line containing pass and
@@ -237,24 +235,21 @@ class vectors2raster:
             elif self.dlg.radioButton_min.isChecked():
                 style = "min"
 
-            #self.pyqgisTest(layerName, style, squareLength)
 
             pass
 
-    #초기 변수 세팅
+    
     def setValues(self):
-        print("setValues called")
-        #입력받은 벡터 레이어 리스트
+        #vector layer list
         layerName = []
-        #래스터 레이어 분석 방식
+        #raster layer calculate style
         style = ""
-        #분석할 값을 가져올 필드명
+        #field name for calculate
         calcField = ""
-        #래스터 픽셀 사이즈
+        #raster layer pixel size
         squareLength = ''
-        #저장경로 없으면 불러오기만
+        #sace path
         savePath = ""
-        #저장경로 입력된 경우엔 경로로 저장
         if self.dlg.outputFileWidget.filePath() is not "":
             savePath = self.dlg.outputFileWidget.filePath()
         elif self.dlg.outputFileWidget.filePath() is "":
@@ -283,22 +278,18 @@ class vectors2raster:
             return
         self.pyqgisTest(layerName, calcField, style, squareLength, savePath)
 
-    #pyqgis로 짠 내용
     def pyqgisTest(self, layerName, calcField, style, squareLength, savePath):
-        print("pyqgisTest called")
-        #분석 중간 산출물 저장용
         reprojectList = []
         rasterizeList= []
         layerList = []
         param = {}
         typeCalc = ''
-        #프로그레스바 값 변경
         self.dlg.progressBar.setValue(0)
 
-        #래스터 분석시 범위 지정용 빈 벡터 레이어 제작
+        #output raster extent
         mergedExtent = QgsVectorLayer("Polygon?crs=EPSG:3857", "Polygons", "memory").extent()
 
-        #체크된 레이어 이름으로 레이어 선택 후, 분석 결과 정확도를 위해 좌표계 통일
+        #get layer by name and reprojection
         for layer in layerName:
             layer1 = QgsProject.instance().mapLayersByName(layer)
             layerList += layer1
@@ -306,14 +297,13 @@ class vectors2raster:
                 'INPUT': layer1[0],
                 'TARGET_CRS': 'EPSG:3857',
                 'OUTPUT': 'memory:'+layer1[0].name()+'_reprojected'})['OUTPUT']
-            #재투영된 산출물의 범위를 중첩
+            #extent combine
             mergedExtent.combineExtentWith(result.extent())
             reprojectList.append(result)
 
         self.dlg.progressBar.setValue(25)
 
-        print("재투영 완료")
-        #재투영된 산출물들 래스터화
+        #rasterize
         typeCheck = [2,4]
         if not reprojectList:
             blankDialog = QtWidgets.QMessageBox()
@@ -336,7 +326,6 @@ class vectors2raster:
                 self.dlg.progressBar.setValue(0)
                 return
             else:
-                print("rasterize 실행")
                 rasterizeResult = processing.run("gdal:rasterize", {
                 'INPUT': layer,  # already vector layer
                 'FIELD': calcField,
@@ -352,11 +341,10 @@ class vectors2raster:
                 'EXTRA': '-tap',
                 'OUTPUT': 'TEMPORARY_OUTPUT'})
                 rasterizeList.append(rasterizeResult)
-            print("필드 확인 완료")
         self.dlg.progressBar.setValue(50)
 
 
-        #래스터 계산기에 입력할 계산식 case별 정리. gdal raster calculator은 입력 레이어가 6개 까지라 1~6개 케이스를 모두 작성함
+        #cale by case.
         match style:
             case 'add':
                 if len(rasterizeList) == 1:
@@ -414,7 +402,7 @@ class vectors2raster:
 
         self.dlg.progressBar.setValue(75)
 
-        #입력된 래스터 수에 따라서 래스터 계산기 입력 파라미터 case로 정리
+        #rasterize parameters. case by number of layers
         match len(rasterizeList):
             case 1:
                 param = {
@@ -549,17 +537,16 @@ class vectors2raster:
                 'PROJWIN' : mergedExtent,
                 'RTYPE' : 1 }
 
-        #래스터계산기 실행
+        #raster calculator
         processing.runAndLoadResults('gdal:rastercalculator', param)
-        print("래스터계산기 실행 완료")
         self.dlg.progressBar.setValue(100)
 
-        #실행 완료 메시지박스 출력
+        #messegebox for "Done!"
         blankDialog = QtWidgets.QMessageBox()
         blankDialog.setText('Done!')
         blankDialog.exec_()
 
-    #툴 close시 입력값 초기화
+    #clear input for close
     def closeDlg(self):
         self.dlg.mComboBox.clear()
         self.dlg.lineEdit.clear()
