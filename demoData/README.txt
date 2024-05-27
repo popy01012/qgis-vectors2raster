@@ -1,0 +1,2 @@
+osmデータにfclass fieldのvalueに従って任意に1~5までの数字が入力されたint field、valueを追加しました。
+該当データで分析を進めるには、プラグインのField Nameに「value」を入力してから使用します。
