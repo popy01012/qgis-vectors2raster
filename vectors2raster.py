@@ -315,6 +315,12 @@ class vectors2raster:
         print("재투영 완료")
         #재투영된 산출물들 래스터화
         typeCheck = [2,4]
+        if not reprojectList:
+            blankDialog = QtWidgets.QMessageBox()
+            blankDialog.setText('must select at least 1 vector layer!')
+            blankDialog.exec_()
+            self.dlg.progressBar.setValue(0)
+            return
         for layer in reprojectList:
             field_index = layer.fields().indexFromName(calcField)
             if field_index == -1:
