@@ -22,3 +22,4 @@ Cautuon
  - The data format of the field for analysis must be set to Int
  - The extent of the final output is fixed to the minimum rectangle area containing the selected vector layers
  - The coordinate system of the final output is fixed as EPSG:3857
+ - python 3.10 or higher is required to run this plugin
